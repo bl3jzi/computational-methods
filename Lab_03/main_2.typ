@@ -298,7 +298,7 @@ Zadanie pokazało, że wybór bazy funkcji interpolacyjnych ma kluczowe znaczeni
 
 Wszystkie trzy metody (Vandermonde, Lagrange, Newton) wyznaczają ten sam wielomian interpolacyjny — różnią się jedynie reprezentacją i kosztem obliczeniowym. Schemat Hornera pozwala na efektywną ewaluację wielomianu przy minimalnej liczbie operacji arytmetycznych.
 
-Ekstrapolacja do roku 1990 daje błąd rzędu $66.73%$, co ilustruje typowy problem wielomianów wysokiego stopnia: wewnątrz przedziału interpolacji zachowują się dobrze, natomiast poza nim mogą gwałtownie odbiegać od rzeczywistości (efekt Rungego). Jest to argument za stosowaniem interpolacji lokalnej (np. funkcji sklejanych) dla danych, dla których ekstrapolacja jest istotna.
+Ekstrapolacja do roku 1990 daje błąd rzędu $66.73%$, co ilustruje typowy problem wielomianów wysokiego stopnia: wewnątrz przedziału interpolacji mogą zachowywać się dobrze, natomiast poza nim gwałtownie rosną lub maleją (dywergują), przez co drastycznie odbiegają od rzeczywistości. Należy stanowczo podkreślić, że tak niska dokładność predykcji nie wynika z efektu Rungego (który powoduje sztuczne oscylacje wewnątrz przedziału interpolacji przy węzłach równoodległych), lecz z naturalnej asymptotyki wielomianów. Z tego powodu globalne wielomiany wysokiego stopnia są skrajnie niestabilne i zupełnie nie nadają się do zadań ekstrapolacyjnych.
 
 // ─── Zadanie 2 ──────────────────────────────────────────────────────────────
 
@@ -344,29 +344,36 @@ W celu zbudowania punktu odniesienia wyznaczono tradycyjny, globalny wielomian i
 
 #pagebreak()
 
+=== Szacowanie za pomocą PCHIP
+
+Metoda _Piecewise Cubic Hermite Interpolating Polynomial_ (PCHIP) konstruuje interpolację kawałkami wielomianami trzeciego stopnia, podobnie jak klasyczne splajny kubiczne. Kluczowa różnica polega na sposobie wyznaczania pochodnych w węzłach — PCHIP dobiera je *lokalnie*, na podstawie jedynie sąsiednich węzłów, według algorytmu Fritsch-Carlsona. Algorytm ten gwarantuje zachowanie *monotoniczności* danych: jeśli wartości funkcji rosną między dwoma węzłami, krzywa również rośnie w tym podprzedziale, a w węzłach będących lokalnymi ekstremami pochodna jest ustawiana na zero.
+
+Konsekwencją lokalnego wyznaczania pochodnych jest to, że PCHIP zapewnia jedynie ciągłość pierwszej pochodnej ($C^1$), w przeciwieństwie do klasycznych splajnów kubicznych, które są $C^2$. Krzywa może być zatem mniej wizualnie "gładka", lecz wierniej odwzorowuje lokalne trendy w danych. Podobnie jak wszystkie metody interpolacyjne, PCHIP nie posiada szczególnych właściwości gwarantujących poprawną ekstrapolację poza przedział danych.
+
 === Zestawienie wyników i błędów
 Poniższa tabela prezentuje produkcję przewidywaną przez poszczególne modele oraz ich błędy względne w stosunku do wartości prawdziwych.
 
 #align(center)[
   #table(
-    columns: (auto, auto, auto, auto, auto, auto),
-    align: (center, center, left, left, left, left),
+    columns: (auto, auto, auto, auto, auto, auto, auto),
+    align: (center, center, left, left, left, left, left),
     stroke: 0.5pt,
-    [*Rok*], [*Prawdziwa produkcja*], [*Splajn (not-a-knot)*], [*Splajn (naturalny)*], [*Splajn (clamped)*], [*Wielomian Lagrange'a*],
-    [1962], [12 380], [5 146 \ (Błąd: 58.43%)], [13 285 \ (Błąd: 7.31%)], [24 313 \ (Błąd: 96.39%)], [-77 823 \ (Błąd: 728.62%)],
-    [1977], [27 403], [22 642 \ (Błąd: 17.37%)], [22 934 \ (Błąd: 16.31%)], [23 126 \ (Błąd: 15.61%)], [15 342 \ (Błąd: 44.01%)],
-    [1992], [32 059], [41 894 \ (Błąd: 30.68%)], [37 798 \ (Błąd: 17.90%)], [22 166 \ (Błąd: 30.86%)], [43 062 \ (Błąd: 34.32%)],
+    [*Rok*], [*Prawdziwa produkcja*], [*Splajn (not-a-knot)*], [*Splajn (naturalny)*], [*Splajn (clamped)*], [*PCHIP*], [*Wielomian Lagrange'a*],
+    [1962], [12 380], [5 146 \ (Błąd: 58.43%)], [13 285 \ (Błąd: 7.31%)], [24 313 \ (Błąd: 96.39%)], [13 869 \ (Błąd: 12.03%)], [-77 704 \ (Błąd: 727.66%)],
+    [1977], [27 403], [22 642 \ (Błąd: 17.37%)], [22 934 \ (Błąd: 16.31%)], [23 126 \ (Błąd: 15.61%)], [25 204 \ (Błąd: 8.02%)], [15 470 \ (Błąd: 43.55%)],
+    [1992], [32 059], [41 894 \ (Błąd: 30.68%)], [37 798 \ (Błąd: 17.90%)], [22 166 \ (Błąd: 30.86%)], [32 663 \ (Błąd: 1.89%)], [43 191 \ (Błąd: 34.72%)],
   )
 ]
 
 #figure(
-  image("splajny.png", width: 90%), 
-  caption: [Interpolacja i ekstrapolacja produkcji cytrusów we Włoszech przy użyciu różnych modeli.]
+  image("wykres_fixed.png", width: 90%), 
+  caption: [Interpolacja i ekstrapolacja produkcji cytrusów we Włoszech przy użyciu różnych modeli. (Uwaga: oś rzędnych została celowo ograniczona dla czytelności z powodu silnej dywergencji wielomianu Lagrange'a.)]
 )
 
 == Wnioski
 
-+ *Wielomian globalny a zjawisko Rungego:* Zgodnie z wynikami z tabeli, zastosowanie globalnego wielomianu Lagrange'a kończy się całkowitą porażką analityczną. Przy próbie ekstrapolacji w przeszłość (rok 1962) wielomian zachowuje się drastycznie niestabilnie, zwracając absurdalną wartość ujemną (błąd aż 728.62%). Dodatkowo, nawet przy interpolacji wewnątrz przedziału (rok 1977), błąd wyniósł ponad 44%. Bezpośrednio demonstruje to niszczycielski wpływ zjawiska Rungego na brzegach dziedziny oraz niestabilność wielomianów wysokich stopni.
-+ *Zdecydowana przewaga Splajnów:* Kubiczne funkcje sklejane okazały się znacznie bardziej zachowawcze i odporne na dzikie oscylacje poza przedziałem interpolacyjnym. W każdym z badanych lat (zarówno podczas interpolacji, jak i ekstrapolacji) wygenerowały one mniejszy błąd niż model Lagrange'a. 
-+ *Pułapka splajnu usztywnionego (clamped):* Pomimo że splajn typu clamped poradził sobie świetnie wewnątrz przedziału (w 1977 roku błąd wyniósł zaledwie 15.61%), zawiódł przy ekstrapolacji. Domyślne narzucenie zerowej pierwszej pochodnej na brzegach zmusiło krzywą o wyraźnym trendzie do nienaturalnego, poziomego wypłaszczenia w skrajnych węzłach. Przez to sztuczne zaburzenie model drastycznie i nienaturalnie opadł poza przedziałem, generując ogromny błąd dla 1962 roku (ponad 96.39%).
-+ *Splajn naturalny jako najlepszy model:* Bezkonkurencyjnym zwycięzcą zestawienia jest splajn naturalny. Wymuszenie zerowania się drugiej pochodnej na brzegach przedziału (brak zakrzywienia, "wypłaszczenie" krzywej) sprawiło, że genialnie poradził on sobie z ekstrapolacją – dla 1962 roku pomylił się zaledwie o 7.31%, a dla 1992 roku o 17.90%. Uodparnia to model na gwałtowne wahania, czyniąc funkcje sklejane naturalne o wiele potężniejszym i bezpieczniejszym narzędziem dla rzeczywistych zbiorów danych niż jakikolwiek globalny wielomian.
++ *Słabość globalnego wielomianu Lagrange'a:* Zastosowanie wielomianu Lagrange'a daje najgorsze wyniki spośród wszystkich metod. Przy ekstrapolacji w przeszłość (rok 1962) wielomian zwraca absurdalną wartość ujemną (błąd 728.62%), a nawet przy interpolacji wewnątrz przedziału (rok 1977) błąd wynosi ponad 44%. Wynika to z ogólnej właściwości wielomianów wysokiego stopnia — nie z efektu Rungego, który dotyczy oscylacji wewnątrz przedziału przy równoodległych węzłach — lecz z faktu, że wielomiany wysokiego stopnia z definicji silnie dywergują poza zakresem danych.
++ *Przewaga splajnów i PCHIP nad wielomianem globalnym:* Wszystkie metody oparte na interpolacji lokalnej (splajny oraz PCHIP) okazały się znacznie bardziej zachowawcze. W każdym z badanych lat wygenerowały mniejszy błąd niż wielomian Lagrange'a.
++ *Pułapka splajnu usztywnionego (clamped):* Splajn typu clamped narzuca zerową pierwszą pochodną na brzegach, co wymusza poziome wejście krzywej w skrajne węzły. Dla danych o wyraźnym trendzie jest to założenie nienaturalne, które prowadzi do drastycznych błędów ekstrapolacji (96.39% dla roku 1962).
++ *PCHIP — zachowanie monotoniczności kosztem gładkości:* PCHIP uzyskał najlepszy wynik dla roku 1992 (błąd 1.89%) oraz konkurencyjny dla roku 1977 (8.02%). Należy jednak zauważyć, że dobry wynik dla 1992 r. może być częściowo zbiegiem okoliczności — poza przedziałem krzywa PCHIP również silnie dywerguje, co widoczne jest na wykresie. PCHIP jest szczególnie wartościowy gdy zależy nam na zachowaniu monotoniczności wewnątrz przedziału, kosztem nieco mniejszej gładkości ($C^1$ zamiast $C^2$).
++ *Splajn naturalny jako najbardziej niezawodna metoda dla tych danych:* Spośród wszystkich metod splajn naturalny wykazał najbardziej zrównoważone wyniki — błąd 7.31% dla roku 1962 i 17.90% dla roku 1992. Zerowanie drugiej pochodnej na brzegach ogranicza zakrzywienie krzywej na skrajach przedziału, co sprzyja łagodniejszej ekstrapolacji. Należy jednak pamiętać, że jest to obserwacja specyficzna dla tego zbioru danych.
