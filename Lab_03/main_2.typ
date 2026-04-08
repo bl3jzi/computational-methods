@@ -75,7 +75,7 @@ Dla każdej z czterech baz konstruujemy macierz Vandermonde'a $V$ rozmiaru $9 ti
 exponent = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])
 
 V_1 = dates[:, np.newaxis] ** exponent                    # baza 1
-V_2 = (dates - 1900)[:, np.newaxis] ** exponent          # baza 2
+V_2 = (dates - 1900)[:, np.newaxis] ** exponent           # baza 2
 V_3 = (dates - 1940)[:, np.newaxis] ** exponent          # baza 3
 V_4 = ((dates - 1940) / 40)[:, np.newaxis] ** exponent   # baza 4
 ```
@@ -115,7 +115,7 @@ Obliczone wartości przy użyciu funkcji `numpy.linalg.cond`:
   )
 ]
 
-Najlepiej uwarunkowana jest *Baza 4*, która centruje i skaluje dane tak, że węzły interpolacji leżą w przedziale $[-1, 1]$. Baza 1 jest skrajnie źle uwarunkowana ze względu na ogromne potęgi liczb rzędu $10^3$.
+Najlepiej uwarunkowana jest *Baza 4*, która centruje i skaluje dane tak, że węzły interpolacji leżą w przedziale $[-1, 1]$. Baza 1 jest skrajnie źle uwarunkowana ze względu na ogromne potęgi liczb rzędu $10^26$.
 
 #pagebreak()
 
@@ -181,7 +181,7 @@ Otrzymane wyniki:
   )
 ]
 
-Tak duży błąd ekstrapolacji jest typowym zjawiskiem dla wielomianów wysokiego stopnia — poza przedziałem interpolacji mogą one zachowywać się bardzo nieregularnie (efekt Rungego).
+Tak duży błąd ekstrapolacji jest typowym zjawiskiem dla wielomianów wysokiego stopnia — poza przedziałem interpolacji mogą one zachowywać się bardzo nieregularnie.
 
 === Podpunkt (e): Wielomian interpolacyjny Lagrange'a
 
@@ -219,7 +219,7 @@ Zgodność w węźle interpolacji (1950) potwierdza poprawność implementacji.
 
 === Podpunkt (f): Wielomian interpolacyjny Newtona
 
-Wielomian Newtona wyznaczamy przy pomocy *ilorazów różnicowych*. Tablica ilorazów różnicowych $[t_i, dots, t_{i+k}]$ definiowana jest rekurencyjnie:
+Wielomian Newtona wyznaczamy przy pomocy *ilorazów różnicowych*. Tablica ilorazów różnicowych $[t_i, dots, t_(i+k)]$ definiowana jest rekurencyjnie:
 
 $ [t_i] = y_i, quad [t_i, dots, t_{i+k}] = frac([t_{i+1}, dots, t_{i+k}] - [t_i, dots, t_{i+k-1}], t_{i+k} - t_i) $
 
@@ -246,6 +246,17 @@ def newton_interpolation(x_nodes, coeffs, x_eval):
 ```
 
 Predykcja dla roku 1990 wynosi 82 749 141 — identycznie jak w metodzie Lagrange'a i Vandermonde'a, co potwierdza, że wszystkie trzy metody wyznaczają ten sam wielomian interpolacyjny ósmego stopnia.
+
+Poniższy wykres przedstawia krzywe wszystkich trzech metod nałożone na siebie. 
+Pomimo różnych reprezentacji matematycznych i algorytmów obliczeniowych, 
+wszystkie metody wyznaczają identyczny wielomian interpolacyjny — krzywe 
+pokrywają się w sposób nierozróżnialny, co stanowi wizualne potwierdzenie 
+ich równoważności.
+
+#figure(
+  image("ex1_connected.png", width: 90%),
+  caption: [Porównanie krzywych interpolacyjnych wyznaczonych trzema metodami: Vandermonde'a (Horner), Lagrange'a i Newtona.]
+)
 
 === Podpunkt (g): Wpływ zaokrąglenia danych
 
@@ -290,6 +301,7 @@ Błąd względny ekstrapolacji dla roku 1990 obliczony na podstawie zaokrąglony
 - *Błąd względny:* 56.17%
 
 Wynik predykcji zmienił się aż o ponad 26 milionów w porównaniu do modelu opartego na oryginalnych danych (82 749 141), co ostatecznie udowadnia niestabilność i wrażliwość tego wielomianu.
+
 == Wnioski
 
 #v(0.7em)
@@ -372,8 +384,12 @@ Poniższa tabela prezentuje produkcję przewidywaną przez poszczególne modele 
 
 == Wnioski
 
-+ *Słabość globalnego wielomianu Lagrange'a:* Zastosowanie wielomianu Lagrange'a daje najgorsze wyniki spośród wszystkich metod. Przy ekstrapolacji w przeszłość (rok 1962) wielomian zwraca absurdalną wartość ujemną (błąd 728.62%), a nawet przy interpolacji wewnątrz przedziału (rok 1977) błąd wynosi ponad 44%. Wynika to z ogólnej właściwości wielomianów wysokiego stopnia — nie z efektu Rungego, który dotyczy oscylacji wewnątrz przedziału przy równoodległych węzłach — lecz z faktu, że wielomiany wysokiego stopnia z definicji silnie dywergują poza zakresem danych.
++ *Słabość globalnego wielomianu Lagrange'a:* Zastosowanie wielomianu Lagrange'a daje najgorsze wyniki spośród wszystkich metod. Przy ekstrapolacji w przeszłość (rok 1962) wielomian zwraca absurdalną wartość ujemną (błąd *727.66%*), a nawet przy interpolacji wewnątrz przedziału (rok 1977) błąd wynosi *ponad 43%* (dokładnie 43.55%). Wynika to z ogólnej właściwości wielomianów wysokiego stopnia — nie z efektu Rungego, który dotyczy oscylacji wewnątrz przedziału przy równoodległych węzłach — lecz z faktu, że wielomiany wysokiego stopnia z definicji silnie dywergują poza zakresem danych.
+
 + *Przewaga splajnów i PCHIP nad wielomianem globalnym:* Wszystkie metody oparte na interpolacji lokalnej (splajny oraz PCHIP) okazały się znacznie bardziej zachowawcze. W każdym z badanych lat wygenerowały mniejszy błąd niż wielomian Lagrange'a.
+
 + *Pułapka splajnu usztywnionego (clamped):* Splajn typu clamped narzuca zerową pierwszą pochodną na brzegach, co wymusza poziome wejście krzywej w skrajne węzły. Dla danych o wyraźnym trendzie jest to założenie nienaturalne, które prowadzi do drastycznych błędów ekstrapolacji (96.39% dla roku 1962).
-+ *PCHIP — zachowanie monotoniczności kosztem gładkości:* PCHIP uzyskał najlepszy wynik dla roku 1992 (błąd 1.89%) oraz konkurencyjny dla roku 1977 (8.02%). Należy jednak zauważyć, że dobry wynik dla 1992 r. może być częściowo zbiegiem okoliczności — poza przedziałem krzywa PCHIP również silnie dywerguje, co widoczne jest na wykresie. PCHIP jest szczególnie wartościowy gdy zależy nam na zachowaniu monotoniczności wewnątrz przedziału, kosztem nieco mniejszej gładkości ($C^1$ zamiast $C^2$).
-+ *Splajn naturalny jako najbardziej niezawodna metoda dla tych danych:* Spośród wszystkich metod splajn naturalny wykazał najbardziej zrównoważone wyniki — błąd 7.31% dla roku 1962 i 17.90% dla roku 1992. Zerowanie drugiej pochodnej na brzegach ogranicza zakrzywienie krzywej na skrajach przedziału, co sprzyja łagodniejszej ekstrapolacji. Należy jednak pamiętać, że jest to obserwacja specyficzna dla tego zbioru danych.
+
++ *PCHIP — najwyższa ogólna skuteczność kosztem gładkości:* PCHIP uzyskał *najlepsze wyniki w dwóch z trzech przypadków*: spektakularny wynik dla roku 1992 (błąd zaledwie 1.89%) oraz najlepszy wynik dla roku 1977 (8.02%). Choć dla 1992 r. tak niska wartość może być częściowo zbiegiem okoliczności (poza przedziałem krzywa PCHIP również może dywergować), to metoda ta okazała się najdokładniejsza dla danych historycznych. PCHIP jest szczególnie wartościowy, gdy zależy nam na zachowaniu kształtu danych (np. monotoniczności) kosztem nieco mniejszej gładkości ($C^1$ zamiast $C^2$).
+
++ *Splajn naturalny jako najlepsza metoda dla ekstrapolacji w przeszłość:* Choć ogólnie ustąpił metodzie PCHIP, splajn naturalny wykazał *najmniejszy błąd dla roku 1962 (7.31%)* i zachował przyzwoite, bardzo zrównoważone wyniki w pozostałych latach (16.31% dla 1977 i 17.90% dla 1992). Zerowanie drugiej pochodnej na brzegach ogranicza zakrzywienie krzywej na skrajach przedziału. W przypadku tego konkretnego zbioru danych poskutkowało to najłagodniejszą i najdokładniejszą ekstrapolacją wstecz.
